@@ -1,11 +1,14 @@
 name: node
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
 
 jobs:
   build:
+    if: contains( github.event.pull_request.labels.*.name, 'CI')
     name: Create & push Docker image
     runs-on: [ self-hosted, linux, x64, parachain ]
 
@@ -56,35 +59,10 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
 
-  deploy_1:
-    name: deploy-collator-1
+  deploy:
+    name: deploy-collator
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: executing remote ssh commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            cd /home/ops/
-            ./para-one.sh
-
-
-  deploy_2:
-    name: deploy-collator-2
-    needs: deploy_1
-    runs-on: ubuntu-latest
-    steps:
-      - name: executing remote ssh commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_2 }}
-          username: ${{ secrets.USERNAME_2 }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            cd /home/ops/
-            ./para-two.sh
+        run: echo 'Deploy was run'
