@@ -1,7 +1,9 @@
 name: node
 on:
   pull_request:
-    types: [ labeled ]        
+    types:
+      - labeled
+      - closed
     branches:
       - main
 
