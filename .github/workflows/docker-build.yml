@@ -1,14 +1,14 @@
 name: node
 on:
   pull_request:
-    types: 
-      - closed 
+    types:
+      - closed
     branches:
       - main
 
 jobs:
   build:
-    if: contains( github.event.pull_request.labels.*.name, 'CI')          
+    if: contains( github.event.pull_request.labels.*.name, 'CI')
     name: Create & push Docker image
     runs-on: [ self-hosted, linux, x64, parachain ]
 
@@ -18,7 +18,7 @@ jobs:
         id: prep
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          IMAGE="dappforce/subsocial-parachain"
+          IMAGE="f3joule/subsocial-parachain"
           echo ::set-output name=tagged_image::${IMAGE}:${TAG}
           echo ::set-output name=tag::${TAG}
 
@@ -49,7 +49,7 @@ jobs:
           push: true
           tags: |
             ${{ steps.prep.outputs.tagged_image }}
-            dappforce/subsocial-parachain:latest
+            f3joule/subsocial-parachain:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -65,29 +65,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: executing remote ssh commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            cd /home/ops/
-            ./para-one.sh
-
-
-  deploy_2:
-    name: deploy-collator-2
-    needs: deploy_1
-    runs-on: ubuntu-latest
-    steps:
-      - name: executing remote ssh commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_2 }}
-          username: ${{ secrets.USERNAME_2 }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            cd /home/ops/
-            ./para-two.sh
+        run: echo "RUN"
