@@ -266,7 +266,7 @@ impl Contains<Call> for BaseFilter {
 				Call::Vesting(pallet_vesting::Call::vest_other { .. })
 			);
 		let is_domains_registration =
-			matches!(c, Call::Domains(pallet_domains::Call::register_domain { .. }));
+			matches!(c, Call::Domains(pallet_handles::Call::register_domain { .. }));
 
 		match *c {
 			Call::Balances(..) => is_force_transfer,
@@ -653,7 +653,7 @@ parameter_types! {
     pub const OuterValueByteDeposit: Balance = 1 * MILLIUNIT;
 }
 
-impl pallet_domains::Config for Runtime {
+impl pallet_handles::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MinDomainLength = MinDomainLength;
@@ -664,7 +664,7 @@ impl pallet_domains::Config for Runtime {
 	type MaxOuterValueLength = MaxOuterValueLength;
 	type BaseDomainDeposit = BaseDomainDeposit;
 	type OuterValueByteDeposit = OuterValueByteDeposit;
-	type WeightInfo = pallet_domains::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = pallet_handles::weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -704,7 +704,7 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
 		// Subsocial Pallets
-		Domains: pallet_domains = 60,
+		Domains: pallet_handles = 60,
 
 		// Temporary
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 255,
@@ -725,7 +725,7 @@ mod benches {
 		[pallet_vesting, Vesting]
 		[pallet_utility, Utility]
 		[pallet_collator_selection, CollatorSelection]
-		[pallet_domains, Domains]
+		[pallet_handles, Domains]
 	);
 }
 

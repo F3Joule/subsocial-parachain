@@ -12,7 +12,7 @@ use sp_std::convert::TryInto;
 use pallet_parachain_utils::Content;
 use pallet_parachain_utils::mock_functions::{another_valid_content_ipfs, valid_content_ipfs};
 
-pub(crate) use crate as pallet_domains;
+pub(crate) use crate as pallet_handles;
 use crate::types::*;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -27,7 +27,7 @@ frame_support::construct_runtime!(
 		System: frame_system,
         Timestamp: pallet_timestamp,
         Balances: pallet_balances,
-		Domains: pallet_domains,
+		Domains: pallet_handles,
 	}
 );
 
@@ -108,7 +108,7 @@ parameter_types! {
     pub static OuterValueByteDeposit: Balance = 0;
 }
 
-impl pallet_domains::Config for Test {
+impl pallet_handles::Config for Test {
     type Event = Event;
     type Currency = Balances;
     type MinDomainLength = MinDomainLength;
@@ -329,7 +329,7 @@ fn _set_domain_content(
 
 pub(crate) fn account_with_balance(id: AccountId, balance: Balance) -> AccountId {
     let account = account(id);
-    let _ = <Test as pallet_domains::Config>::Currency::make_free_balance_be(&account, balance);
+    let _ = <Test as pallet_handles::Config>::Currency::make_free_balance_be(&account, balance);
     account
 }
 
@@ -338,7 +338,7 @@ pub(crate) fn account(id: AccountId) -> AccountId {
 }
 
 pub(crate) fn get_reserved_balance(who: &AccountId) -> BalanceOf<Test> {
-    <Test as pallet_domains::Config>::Currency::reserved_balance(who)
+    <Test as pallet_handles::Config>::Currency::reserved_balance(who)
 }
 
 #[derive(Clone)]

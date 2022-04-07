@@ -1,4 +1,4 @@
-//! Benchmarking for pallet-domains
+//! Benchmarking for pallet-handles
 
 use super::*;
 use types::*;
