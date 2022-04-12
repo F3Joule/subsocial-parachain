@@ -97,6 +97,15 @@ fn register_domain_should_fail_when_balance_is_insufficient() {
 }
 
 #[test]
+fn force_register_domain_should_reserve_no_deposit() {
+    ExtBuilder::default().build().execute_with(|| {
+        let owner = account_with_balance(DOMAIN_OWNER, BalanceOf::<Test>::max_value());
+        assert_ok!(_force_register_default_domain());
+        assert!(get_reserved_balance(&owner).is_zero());
+    });
+}
+
+#[test]
 fn force_register_domain_should_fail_with_bad_origin() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
@@ -141,6 +150,54 @@ fn force_register_domain_should_fail_when_domain_reserved() {
             Error::<Test>::DomainIsReserved,
         );
     });
+}
+
+#[test]
+fn force_register_domain_should_fail_when_tld_not_supported() {
+    ExtBuilder::default().build_without_tld().execute_with(|| {
+        assert_noop!(
+            _force_register_default_domain(),
+            Error::<Test>::TldNotSupported,
+        );
+    });
+}
+
+#[test]
+fn force_register_domain_should_fail_when_tld_not_specified() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(
+            _force_register_domain_with_full_domain(
+                Domains::lower_domain_then_bound(&b"without-tld".to_vec())
+            ),
+            Error::<Test>::TldNotSpecified,
+        );
+    });
+}
+
+#[test]
+fn force_register_domain_should_fail_when_domain_too_short() {
+    ExtBuilder::default()
+        .min_domain_length(3)
+        .build()
+        .execute_with(|| {
+            assert_noop!(
+                _force_register_domain_with_full_domain(domain_from(b"ab".to_vec())),
+                Error::<Test>::DomainNameIsTooShort,
+            );
+        });
+}
+
+#[test]
+fn force_register_domain_should_fail_when_domain_is_invalid() {
+    ExtBuilder::default()
+        .min_domain_length(3)
+        .build()
+        .execute_with(|| {
+            assert_noop!(
+                _force_register_domain_with_full_domain(domain_from(b"ab!".to_vec())),
+                Error::<Test>::DomainContainsInvalidChar,
+            );
+        });
 }
 
 // `set_inner_value` tests
@@ -268,6 +325,13 @@ fn set_inner_value_should_fail_when_inner_value_not_differ() {
 }
 
 #[test]
+fn set_inner_value_should_fail_when_domain_not_found() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(_set_default_inner_value(), Error::<Test>::DomainNotFound);
+    });
+}
+
+#[test]
 fn force_set_inner_value_should_work() {
     ExtBuilder::default().build_with_default_domain_registered().execute_with(|| {
         assert_ok!(
@@ -366,6 +430,33 @@ fn set_outer_value_should_reserve_correct_deposit_when_outer_value_keep_changing
 }
 
 #[test]
+fn set_outer_value_should_reserve_deposit_for_multiple_domains() {
+    const LOCAL_BYTE_DEPOSIT_INIT: Balance = 1;
+    let domain_deposit = ExtBuilder::default().base_domain_deposit;
+    let calc_deposit = |value| value as Balance * LOCAL_BYTE_DEPOSIT_INIT + domain_deposit;
+
+    let default_outer_value_len = default_outer_value(None).len();
+
+    let first_domain = domain_from(b"domain-one".to_vec());
+    let second_domain = domain_from(b"domain-two".to_vec());
+
+    ExtBuilder::default()
+        .outer_value_byte_deposit(LOCAL_BYTE_DEPOSIT_INIT)
+        .build()
+        .execute_with(|| {
+            let owner = account_with_balance(DOMAIN_OWNER, BalanceOf::<Test>::max_value());
+
+            assert_ok!(_register_domain_with_full_domain(first_domain.clone()));
+            assert_ok!(_register_domain_with_full_domain(second_domain.clone()));
+
+            assert_ok!(_set_outer_value_for_domain(first_domain));
+            assert_ok!(_set_outer_value_for_domain(second_domain));
+
+            assert_eq!(get_reserved_balance(&owner), calc_deposit(default_outer_value_len) * 2);
+        });
+}
+
+#[test]
 fn set_outer_value_should_fail_when_domain_has_expired() {
     ExtBuilder::default().build_with_default_domain_registered().execute_with(|| {
         System::set_block_number(ExtBuilder::default().reservation_period_limit + 1);
@@ -415,6 +506,13 @@ fn set_outer_value_should_fail_when_balance_is_insufficient() {
                 pallet_balances::Error::<Test>::InsufficientBalance,
             );
         });
+}
+
+#[test]
+fn set_outer_value_should_fail_when_domain_not_found() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(_set_default_outer_value(), Error::<Test>::DomainNotFound);
+    });
 }
 
 // `set_domain_content` tests
@@ -482,6 +580,13 @@ fn set_domain_content_should_fail_when_content_is_invalid() {
             _set_domain_content_with_content(invalid_content_ipfs()),
             DispatchError::Other(pallet_parachain_utils::Error::InvalidIpfsCid.into()),
         );
+    });
+}
+
+#[test]
+fn set_domain_content_should_fail_when_domain_not_found() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(_set_default_domain_content(), Error::<Test>::DomainNotFound);
     });
 }
 

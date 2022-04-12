@@ -240,6 +240,10 @@ pub(crate) fn _register_default_domain() -> DispatchResult {
     _register_domain(None, None, None, None)
 }
 
+pub(crate) fn _register_domain_with_full_domain(domain: DomainName<Test>) -> DispatchResult {
+    _register_domain(None, Some(domain), None, None)
+}
+
 fn _register_domain(
     origin: Option<Origin>,
     domain: Option<DomainName<Test>>,
@@ -286,6 +290,10 @@ fn _set_inner_value(
 
 pub(crate) fn _set_outer_value_with_origin(origin: Origin) -> DispatchResult {
     _set_outer_value(Some(origin), None, None)
+}
+
+pub(crate) fn _set_outer_value_for_domain(domain: DomainName<Test>) -> DispatchResult {
+    _set_outer_value(None, Some(domain), None)
 }
 
 pub(crate) fn _set_outer_value_with_value(value_opt: Option<OuterValue<Test>>) -> DispatchResult {
@@ -402,15 +410,8 @@ impl ExtBuilder {
     }
 
     pub(crate) fn build(self) -> TestExternalities {
-        self.set_configs();
-
-        let storage = &mut frame_system::GenesisConfig::default()
-            .build_storage::<Test>()
-            .unwrap();
-
-        let mut ext = TestExternalities::from(storage.clone());
+        let mut ext = self.build_without_tld();
         ext.execute_with(|| {
-            System::set_block_number(1);
             assert_ok!(
                 Domains::support_tlds(
                     Origin::root(),
@@ -418,6 +419,19 @@ impl ExtBuilder {
                 )
             );
         });
+
+        ext
+    }
+
+    pub(crate) fn build_without_tld(self) -> TestExternalities {
+        self.set_configs();
+
+        let storage = &mut frame_system::GenesisConfig::default()
+            .build_storage::<Test>()
+            .unwrap();
+
+        let mut ext = TestExternalities::from(storage.clone());
+        ext.execute_with(|| System::set_block_number(1));
 
         ext
     }
