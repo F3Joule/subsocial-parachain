@@ -81,6 +81,11 @@ cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", de
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.19" }
 parachain-info = { git = "https://github.com/paritytech/cumulus", default-features = false,  branch = "polkadot-v0.9.19" }
 
+# Staking dependencies
+#                         TODO: change this to be a frok from dappforce
+#parachain-staking = { git = "https://github.com/TarekkMA/moonbeam", default-features = false, branch = "subsocial/staking" }
+parachain-staking = { path = "../../moonbeam/pallets/parachain-staking", default-features = false }
+
 [features]
 default = [
 	"std",
@@ -134,6 +139,7 @@ std = [
 	"pallet-vesting/std",
 	"pallet-utility/std",
 	"pallet-randomness-collective-flip/std",
+	"parachain-staking/std",
 	"pallet-domains/std",
 ]
 
@@ -154,6 +160,7 @@ runtime-benchmarks = [
 	#---------------
 	"pallet-vesting/runtime-benchmarks",
 	"pallet-utility/runtime-benchmarks",
+	"parachain-staking/runtime-benchmarks",
 	"pallet-domains/runtime-benchmarks",
 ]
 
