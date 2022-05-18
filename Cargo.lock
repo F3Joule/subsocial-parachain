@@ -6211,6 +6211,7 @@ dependencies = [
 [[package]]
 name = "parachain-staking"
 version = "3.0.0"
+source = "git+https://github.com/dappforce/moonbeam?branch=subsocial/staking#87c87aea2f311056df7a5ec40d285b6eed0f2152"
 dependencies = [
  "frame-benchmarking 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.18)",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.18)",
