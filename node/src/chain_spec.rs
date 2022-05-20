@@ -7,7 +7,7 @@ use sp_core::{Pair, Public, sr25519, crypto::UncheckedInto};
 use sp_runtime::traits::{IdentifyAccount, Verify, Zero};
 use hex_literal::hex;
 
-use subsocial_parachain_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT, Signature, Balance, UNIT, Perbill, subsocial_inflation_config};
+use subsocial_parachain_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT, Signature, Balance, UNIT, subsocial_inflation_config};
 use crate::command::DEFAULT_PARA_ID;
 
 pub const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
