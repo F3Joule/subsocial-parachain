@@ -43,6 +43,7 @@ use frame_system::{
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
 pub use parachain_staking;
+use parachain_staking::{InflationInfo};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
 
 #[cfg(any(feature = "std", test))]
@@ -196,6 +197,8 @@ pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
+pub const MONTHS: BlockNumber = DAYS * 30;
+pub const YEARS: BlockNumber = MONTHS * 12;
 
 // Unit = the base number of indivisible units for balances
 pub const UNIT: Balance = 10_000_000_000;
@@ -352,6 +355,27 @@ parameter_types! {
 	pub const DefaultCollatorCommission: Perbill = Perbill::from_percent(20);
 	/// Default percent of inflation set aside for parachain bond every round
 	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
+}
+
+/// The inflation config set in chain spec.
+pub fn subsocial_inflation_config() -> InflationInfo<Balance> {
+	use parachain_staking::Range;
+	let annual_inflation = Range {
+		min: Perbill::from_percent(4),
+		ideal: Perbill::from_percent(5),
+		max: Perbill::from_percent(5),
+	};
+	let expectations = Range {
+		min: 100_000 * UNIT,
+		ideal: 200_000 * UNIT,
+		max: 500_000 * UNIT,
+	};
+	InflationInfo::<Balance>::new(
+		get!(parachain_staking, DefaultBlocksPerRound, u32),
+		YEARS,
+		annual_inflation,
+		expectations,
+	)
 }
 
 impl parachain_staking::Config for Runtime {
