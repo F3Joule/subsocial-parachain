@@ -38,11 +38,10 @@ use frame_support::traits::{ConstU128, ConstU32, OnRuntimeUpgrade};
 use frame_system::{limits::{BlockLength, BlockWeights}, EnsureRoot};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
-pub use parachain_staking;
-use parachain_staking::{InflationInfo};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
 
 pub use parachain_staking;
+use parachain_staking::{InflationInfo};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -122,89 +121,85 @@ pub struct MoveAuthoritiesToStaking;
 
 impl OnRuntimeUpgrade for MoveAuthoritiesToStaking {
 	fn on_runtime_upgrade() -> Weight {
-		use frame_support::{storage::migration, weights::GetDispatchInfo};
+		use frame_support::weights::GetDispatchInfo;
 		use sp_runtime::traits::Dispatchable;
 
-		let authorities_opt: Option<Vec<AuraId>> =
-			migration::get_storage_value(b"Aura", b"Authorities", &[]);
+		let total_weight = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
 
-		return if let Some(authorities) = authorities_opt {
-			fn try_from_authority_to_account(authority: AuraId) -> AccountId {
-				AccountId::try_from(authority.as_ref()).unwrap()
+		let session_validators: Vec<AccountId> = Session::validators();
+		if session_validators.is_empty() {
+			return total_weight;
+		}
+
+		let mut calls_weight: Weight = 0;
+		let mut candidate_count = 0u32;
+
+		for account in session_validators {
+			let origin = frame_system::RawOrigin::Signed(account);
+			let call = Call::ParachainStaking(parachain_staking::Call::join_candidates {
+				bond: 1000 * UNIT,
+				candidate_count,
+			});
+			calls_weight = calls_weight.saturating_add(call.get_dispatch_info().weight);
+
+			if let Err(error) = call.dispatch(origin.into()) {
+				log::warn!("Join candidates failed in genesis with error {:?}", error);
+			} else {
+				candidate_count = candidate_count.saturating_add(1u32);
 			}
+		}
 
-			let mut calls_weight: Weight = 0;
-			let mut candidate_count = 0u32;
-
-			for authority in authorities {
-				let account = try_from_authority_to_account(authority);
-				let origin = frame_system::RawOrigin::Signed(account);
-				let call = Call::ParachainStaking(parachain_staking::Call::join_candidates {
-					bond: 1000 * UNIT,
-					candidate_count,
-				});
-				calls_weight = calls_weight.saturating_add(call.get_dispatch_info().weight);
-
-				if let Err(error) = call.dispatch(origin.into()) {
-					log::warn!("Join candidates failed in runtime upgrade with error {:?}", error);
-				} else {
-					candidate_count = candidate_count.saturating_add(1u32);
-				}
-			}
-
-			<Runtime as frame_system::Config>::DbWeight::get().reads(1).saturating_add(calls_weight)
-		} else {
-			<Runtime as frame_system::Config>::DbWeight::get().reads(1)
-		};
+		total_weight.saturating_add(calls_weight)
 	}
 
 	#[cfg(feature = "try-runtime")]
 	fn pre_upgrade() -> Result<(), &'static str> {
-		use frame_support::storage::migration;
+		use frame_support::weights::GetDispatchInfo;
+		use sp_runtime::traits::Dispatchable;
 
-		let authorities_opt: Option<Vec<AuraId>> =
-			migration::get_storage_value(b"Aura", b"Authorities", &[]);
+		let session_validators: Vec<AccountId> = Session::validators();
+		if session_validators.is_empty() {
+			return Err("Validators not found")
+		}
 
-		return if let Some(authorities) = authorities_opt {
-			fn try_from_authority_to_account(authority: AuraId) -> Result<AccountId, &'static str> {
-				AccountId::try_from(authority.as_ref())
-					.map_err(|_| "Pre: Cannot convert authority to account")
+		let mut calls_weight: Weight = 0;
+		let mut candidate_count = 0u32;
+
+		for account in session_validators {
+			let origin = frame_system::RawOrigin::Signed(account);
+			let call = Call::ParachainStaking(parachain_staking::Call::join_candidates {
+				bond: 1000 * UNIT,
+				candidate_count,
+			});
+			calls_weight = calls_weight.saturating_add(call.get_dispatch_info().weight);
+
+			if let Err(_) = call.dispatch(origin.into()) {
+				return Err("Join candidates failed in runtime upgrade")
+			} else {
+				candidate_count = candidate_count.saturating_add(1u32);
 			}
+		}
 
-			let mut candidates: Vec<(AccountId, Balance)> = Vec::new();
-			for authority in authorities {
-				let account = try_from_authority_to_account(authority)?;
-				candidates.push((account, 1000 * UNIT));
-			}
-
-			log::info!(target: "authority-set:", "{:?}", candidates);
-
-			Ok(())
-		} else {
-			Err("Pre: Cannot find authorities")
-		};
+		Ok(())
 	}
 
 	#[cfg(feature = "try-runtime")]
 	fn post_upgrade() -> Result<(), &'static str> {
-		use frame_support::{ensure, storage::migration};
+		use frame_support::ensure;
 
-		let authorities_opt: Option<Vec<AuraId>> = migration::get_storage_value(b"Aura", b"Authorities", &[]);
-		return if let Some(authorities) = authorities_opt {
-			fn try_from_authority_to_account(authority: AuraId) -> Result<AccountId, &'static str> {
-				AccountId::try_from(authority.as_ref())
-					.map_err(|_| "Post: Cannot convert authority to account")
-			}
-
-			for authority in authorities {
-				let account = try_from_authority_to_account(authority)?;
-				ensure!(parachain_staking::Pallet::<Runtime>::is_candidate(&account) == true, "Post: Candidate wasn't inserted");
-			}
-
-			Ok(())
-		} else {
-			Err("Post: Cannot find authorities")
+		let session_validators: Vec<AccountId> = Session::validators();
+		if session_validators.is_empty() {
+			return Err("Validators not found")
 		}
+
+		for account in session_validators {
+			ensure!(
+				parachain_staking::Pallet::<Runtime>::is_candidate(&account) == true,
+				"Post: Candidate wasn't inserted",
+			);
+		}
+
+		Ok(())
 	}
 }
 
