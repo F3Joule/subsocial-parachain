@@ -10706,6 +10706,7 @@ dependencies = [
  "pallet-parachain-utils",
  "pallet-permissions",
  "pallet-profiles",
+ "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-space-follows",
