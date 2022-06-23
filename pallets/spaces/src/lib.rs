@@ -340,7 +340,6 @@ pub mod pallet {
             space_id: SpaceId,
             created: WhoAndWhenOf<T>,
             owner: T::AccountId,
-            parent_id_opt: Option<SpaceId>,
             content: Content,
             hidden: bool,
             followers_count: u32,
@@ -371,12 +370,19 @@ pub mod pallet {
                     ids.try_push(space_id).expect("qed; too many spaces per account")
                 }
             );
-            NextSpaceId::<T>::put(last_space_id);
 
             Self::deposit_event(Event::SpaceCreated(owner, space_id));
 
             Ok(())
         }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn force_set_next_space_id(origin: OriginFor<T>, space_id: SpaceId) -> DispatchResult {
+            ensure_root(origin)?;
+            NextSpaceId::<T>::put(space_id);
+            Ok(())
+        }
+
     }
 
     impl<T: Config> Pallet<T> {

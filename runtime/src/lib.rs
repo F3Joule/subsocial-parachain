@@ -264,7 +264,10 @@ impl Contains<Call> for BaseFilter {
 			);
 
 		let social_sudo_calls =
-			matches!(c, Call::Spaces(pallet_spaces::Call::force_create_space { .. }));
+			matches!(c,
+				Call::Spaces(pallet_spaces::Call::force_create_space { .. }) |
+				Call::Spaces(pallet_spaces::Call::force_set_next_space_id { .. })
+			);
 
 		match *c {
 			Call::Balances(..) => is_force_transfer,
