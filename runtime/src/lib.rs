@@ -263,16 +263,9 @@ impl Contains<Call> for BaseFilter {
 				Call::Vesting(pallet_vesting::Call::vest_other { .. })
 			);
 
-		let social_sudo_calls =
-			matches!(c,
-				Call::Spaces(pallet_spaces::Call::force_create_space { .. }) |
-				Call::Spaces(pallet_spaces::Call::force_set_next_space_id { .. })
-			);
-
 		match *c {
 			Call::Balances(..) => is_force_transfer,
 			Call::Vesting(..) => !disallowed_vesting_calls,
-			Call::Spaces(..) | Call::SpaceFollows(..) if !social_sudo_calls => false,
 			_ => true,
 		}
 	}
