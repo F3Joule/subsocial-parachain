@@ -16,6 +16,7 @@ pub mod pallet {
 
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+    use sp_std::vec::Vec;
     use pallet_parachain_utils::{Error as UtilsError, SpaceId, remove_from_vec, throw_utils_error};
 
     #[pallet::config]

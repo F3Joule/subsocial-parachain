@@ -26,6 +26,7 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
 	construct_runtime, parameter_types,
+	dispatch::{DispatchResult, DispatchError},
 	traits::Contains,
 	weights::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -262,9 +263,13 @@ impl Contains<Call> for BaseFilter {
 				Call::Vesting(pallet_vesting::Call::vest_other { .. })
 			);
 
+		let social_sudo_calls =
+			matches!(c, Call::Spaces(pallet_spaces::Call::force_create_space { .. }));
+
 		match *c {
 			Call::Balances(..) => is_force_transfer,
 			Call::Vesting(..) => !disallowed_vesting_calls,
+			Call::Spaces(..) | Call::SpaceFollows(..) if !social_sudo_calls => false,
 			_ => true,
 		}
 	}
@@ -529,6 +534,56 @@ impl pallet_domains::Config for Runtime {
 	type WeightInfo = pallet_domains::weights::SubstrateWeight<Runtime>;
 }
 
+use pallet_permissions::default_permissions::DefaultSpacePermissions;
+use pallet_permissions::{SpacePermission, SpacePermissionsContext};
+
+impl pallet_permissions::Config for Runtime {
+	type DefaultSpacePermissions = DefaultSpacePermissions;
+}
+
+impl pallet_profiles::Config for Runtime {}
+
+impl pallet_space_follows::Config for Runtime {
+	type Event = Event;
+	type BeforeSpaceFollowed = ();
+	type BeforeSpaceUnfollowed = ();
+}
+
+parameter_types! {
+	pub const MaxSpacesPerAccount: u32 = 1024;
+}
+
+pub struct DefaultPermissionsChecker;
+impl df_traits::PermissionChecker for DefaultPermissionsChecker {
+	type AccountId = AccountId;
+
+	fn ensure_user_has_space_permission(
+		_user: pallet_parachain_utils::User<Self::AccountId>,
+		ctx: SpacePermissionsContext,
+		permission: SpacePermission,
+		error: DispatchError,
+	) -> DispatchResult {
+		return match Permissions::has_user_a_space_permission(
+			ctx.clone(),
+			permission.clone()
+		) {
+			Some(true) => Ok(()),
+			_ => Err(error),
+		}
+	}
+}
+
+impl pallet_spaces::Config for Runtime {
+	type Event = Event;
+	type Roles = DefaultPermissionsChecker;
+	type SpaceFollows = SpaceFollows;
+	type BeforeSpaceCreated = SpaceFollows;
+	type AfterSpaceUpdated = ();
+	type IsAccountBlocked = ()/*Moderation*/;
+	type IsContentBlocked = ()/*Moderation*/;
+	type MaxSpacesPerAccount = MaxSpacesPerAccount;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -567,6 +622,11 @@ construct_runtime!(
 
 		// Subsocial Pallets
 		Domains: pallet_domains = 60,
+
+		Permissions: pallet_permissions = 70,
+		Profiles: pallet_profiles::{Pallet, Storage} = 71,
+		SpaceFollows: pallet_space_follows = 72,
+		Spaces: pallet_spaces = 73,
 
 		// Temporary
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 255,
