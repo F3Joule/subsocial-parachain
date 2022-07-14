@@ -1,6 +1,6 @@
 name: test
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   pull_request:
     types:
       - closed
@@ -9,11 +9,11 @@ on:
 
 jobs:
   test:
+    if: github.event_name == "workflow_dispatch"
     name: Test
     runs-on: ubuntu-20.04
 
     steps:
       - name: Output
         run: |
-          echo ${{ github.event.pull_request.labels }}
-          echo ${{ github.event.workflow_dispatch }}
+          echo Success
