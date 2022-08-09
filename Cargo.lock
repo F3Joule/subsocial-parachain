@@ -6054,7 +6054,7 @@ dependencies = [
 [[package]]
 name = "parachain-staking"
 version = "3.0.0"
-source = "git+https://github.com/dappforce/moonbeam?branch=subsocial/staking#feaee83009477af29bf95ee72ab529ad696161d0"
+source = "git+https://github.com/dappforce/moonbeam?branch=f3/add-force-new-round#1d1688cb3229224cc012f92ad3eddd7a7d3fcc2c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11293,7 +11293,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

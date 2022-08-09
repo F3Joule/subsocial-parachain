@@ -124,14 +124,22 @@ impl OnRuntimeUpgrade for MoveAuthoritiesToStaking {
 		use frame_support::weights::GetDispatchInfo;
 		use sp_runtime::traits::Dispatchable;
 
-		let total_weight = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
-
-		let session_validators: Vec<AccountId> = Session::validators();
-		if session_validators.is_empty() {
-			return total_weight;
+		fn sudo_call(pallet_call: parachain_staking::Call<Runtime>) -> Weight {
+			let sudo_origin = frame_system::RawOrigin::Root;
+			let call = Call::ParachainStaking(pallet_call);
+			let call_weight = call.get_dispatch_info().weight;
+			let _ = call.dispatch(sudo_origin.into());
+			call_weight
 		}
 
-		let mut calls_weight: Weight = 0;
+		let session_validators: Vec<AccountId> = Session::validators();
+		let mut total_weight = <Runtime as frame_system::Config>::DbWeight::get().reads(1);
+
+		let config = subsocial_inflation_config();
+
+		parachain_staking::InflationConfig::<Runtime>::put(config);
+
+		let mut join_calls_weight: Weight = 0;
 		let mut candidate_count = 0u32;
 
 		for account in session_validators {
@@ -140,7 +148,7 @@ impl OnRuntimeUpgrade for MoveAuthoritiesToStaking {
 				bond: 1000 * UNIT,
 				candidate_count,
 			});
-			calls_weight = calls_weight.saturating_add(call.get_dispatch_info().weight);
+			join_calls_weight = join_calls_weight.saturating_add(call.get_dispatch_info().weight);
 
 			if let Err(error) = call.dispatch(origin.into()) {
 				log::warn!("Join candidates failed in genesis with error {:?}", error);
@@ -149,7 +157,33 @@ impl OnRuntimeUpgrade for MoveAuthoritiesToStaking {
 			}
 		}
 
-		total_weight.saturating_add(calls_weight)
+		// Set collator commission to default config
+		total_weight = total_weight.saturating_add(sudo_call(
+			parachain_staking::Call::set_collator_commission {
+				new: get!(parachain_staking, DefaultCollatorCommission, Perbill)
+			}
+		));
+
+		// Set parachain bond config to default config
+		total_weight = total_weight.saturating_add(sudo_call(
+			parachain_staking::Call::set_parachain_bond_reserve_percent {
+				new: get!(parachain_staking, DefaultParachainBondReservePercent, Percent)
+			}
+		));
+
+		// Set total selected candidates to minimum config
+		total_weight = total_weight.saturating_add(sudo_call(
+			parachain_staking::Call::set_total_selected {
+				new: get!(parachain_staking, MinSelectedCandidates, u32)
+			}
+		));
+
+		// Force new round on next session change
+		total_weight = total_weight.saturating_add(sudo_call(
+			parachain_staking::Call::force_new_round {}
+		));
+
+		total_weight.saturating_add(join_calls_weight)
 	}
 
 	#[cfg(feature = "try-runtime")]
@@ -261,7 +295,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_version: 12,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 1,
+	transaction_version: 2,
 	state_version: 0,
 };
 
@@ -466,10 +500,10 @@ impl parachain_staking::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
-	/// Minimum round length is 2 minutes (10 * 12 second block times)
-	type MinBlocksPerRound = ConstU32<10>;
-	/// Blocks per round
-	type DefaultBlocksPerRound = ConstU32<{ 2 * HOURS }>;
+	/// Minimum round length is equal to the length of the session from `pallet_session`
+	type MinBlocksPerRound = Period;
+	/// Blocks per round - equal to the length of the session from `pallet_session`
+	type DefaultBlocksPerRound = Period;
 	/// Rounds before the collator leaving the candidates request can be executed
 	type LeaveCandidatesDelay = ConstU32<2>;
 	/// Rounds before the candidate bond increase/decrease can be executed
@@ -578,7 +612,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 }
 
 parameter_types! {
-	pub const Period: u32 = 6 * HOURS;
+	pub const Period: u32 = 5;
 	pub const Offset: u32 = 0;
 	pub const MaxAuthorities: u32 = 100_000;
 }
@@ -713,6 +747,7 @@ construct_runtime!(
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
+		// TODO: clean-up collator selection properly
 		ParachainStaking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
 		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
