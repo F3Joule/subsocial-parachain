@@ -101,28 +101,6 @@ pub mod pallet {
 
             Self::remove_space_follower(follower, space_id)
         }
-
-        #[pallet::weight((
-            100_000 + T::DbWeight::get().reads_writes(3, 4),
-            DispatchClass::Operational,
-            Pays::Yes,
-        ))]
-        pub fn force_follow_space(
-            origin: OriginFor<T>,
-            follower: T::AccountId,
-            space_id: SpaceId,
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
-
-            ensure!(
-                !Self::space_followed_by_account((follower.clone(), space_id)),
-                Error::<T>::AlreadySpaceFollower
-            );
-
-            Self::add_space_follower(follower, space_id);
-
-            Ok(Pays::No.into())
-        }
     }
 
     impl<T: Config> Pallet<T> {
