@@ -164,10 +164,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("subsocial-parachain"),
 	impl_name: create_runtime_str!("subsocial-parachain"),
 	authoring_version: 1,
-	spec_version: 18,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 2,
+	transaction_version: 3,
 	state_version: 0,
 };
 
@@ -518,6 +518,7 @@ pub enum ProxyType {
 	DomainRegistrar,
 	SocialActions,
 	Management,
+	SocialActionsProxy,
 }
 
 impl Default for ProxyType {
@@ -545,7 +546,10 @@ impl InstanceFilter<Call> for ProxyType {
 					| Call::Reactions(..)
 					| Call::AccountFollows(..)
 					| Call::SpaceFollows(..)
+					| Call::Spaces(..)
+					| Call::Profiles(..)
 			),
+			// TODO: Think on this proxy type. We probably need this to extend `SocialActions` or either replace it. 
 			ProxyType::Management => matches!(
 				c,
 				Call::Spaces(..)
@@ -554,6 +558,13 @@ impl InstanceFilter<Call> for ProxyType {
 					| Call::Profiles(..)
 					| Call::Domains(..)
 			),
+			ProxyType::SocialActionsProxy => {
+				matches!(
+					c,
+					Call::Proxy(pallet_proxy::Call::proxy { call, .. })
+					if ProxyType::SocialActions.filter(call),
+				)
+			},
 		}
 	}
 
@@ -635,15 +646,19 @@ impl pallet_posts::Config for Runtime {
 	type Event = Event;
 	type MaxCommentDepth = MaxCommentDepth;
 	type IsPostBlocked = ()/*Moderation*/;
+	type WeightInfo = pallet_posts::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_reactions::Config for Runtime {
 	type Event = Event;
+	type WeightInfo = pallet_reactions::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_profiles::Config for Runtime {
 	type Event = Event;
 	type SpacePermissionsProvider = Spaces;
+	type SpacesInterface = Spaces;
+	type WeightInfo = pallet_profiles::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -657,10 +672,12 @@ impl pallet_roles::Config for Runtime {
 	type SpaceFollows = SpaceFollows;
 	type IsAccountBlocked = ()/*Moderation*/;
 	type IsContentBlocked = ()/*Moderation*/;
+	type WeightInfo = pallet_roles::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_space_follows::Config for Runtime {
 	type Event = Event;
+	type WeightInfo = pallet_space_follows::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -674,11 +691,13 @@ impl pallet_spaces::Config for Runtime {
 	type IsAccountBlocked = ()/*Moderation*/;
 	type IsContentBlocked = ()/*Moderation*/;
 	type MaxSpacesPerAccount = MaxSpacesPerAccount;
+	type WeightInfo = pallet_spaces::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_space_ownership::Config for Runtime {
 	type Event = Event;
 	type ProfileManager = Profiles;
+	type WeightInfo = pallet_space_ownership::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_account_follows::Config for Runtime {
@@ -774,7 +793,14 @@ mod benches {
 		[pallet_collator_selection, CollatorSelection]
 		[pallet_domains, Domains]
 		[pallet_energy, Energy]
+		[pallet_profiles, Profiles]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[pallet_reactions, Reactions]
+		[pallet_roles, Roles]
+		[pallet_space_follows, SpaceFollows]
+		[pallet_space_ownership, SpaceOwnership]
+		[pallet_spaces, Spaces]
+    [pallet_posts, Posts]
 	);
 }
 
