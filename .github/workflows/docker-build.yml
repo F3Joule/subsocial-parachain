@@ -1,6 +1,11 @@
 name: Build a new docker image release
 on:
   workflow_dispatch:
+    inputs:
+      input-tag:
+        description: 'Put a desired tag here (latest by default)'
+        required: false
+        default: 'latest'
   pull_request:
     types:
       - closed
@@ -18,10 +23,13 @@ jobs:
       - name: Prepare
         id: prep
         run: |
+          INPUT_TAG=${{ github.event.inputs.input-tag }}
           TAG=$(echo $GITHUB_SHA | head -c7)
           IMAGE="f3joule/subsocial-parachain"
-          echo ::set-output name=tagged_image::${IMAGE}:${TAG}
-          echo ::set-output name=tag::${TAG}
+          echo tagged_image=${IMAGE}:${TAG} >> $GITHUB_OUTPUT
+          echo tag=${TAG} >> $GITHUB_OUTPUT
+          [ -z $INPUT_TAG ] && INPUT_TAG=latest
+          echo input_tag=${INPUT_TAG} >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         id: buildx
@@ -50,7 +58,7 @@ jobs:
           push: true
           tags: |
             ${{ steps.prep.outputs.tagged_image }}
-            f3joule/subsocial-parachain:polkadot
+            f3joule/subsocial-parachain:${{ steps.prep.outputs.input_tag }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
