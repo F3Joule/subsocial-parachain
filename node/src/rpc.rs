@@ -1,3 +1,9 @@
+// // Copyright (C) DAPPFORCE PTE. LTD., dappforce@gmail.com.
+// // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0.
+//
+// // Full notice is available at https://github.com/dappforce/subsocial-parachain/blob/main/HEADER-GPL3.
+// // Full license is available at https://github.com/dappforce/subsocial-parachain/blob/main/LICENSE.
+
 //! A collection of node-specific RPC methods.
 //! Substrate provides the `sc-rpc` crate, which defines the core RPC layer
 //! used by Substrate nodes. This file extends those RPC definitions with
