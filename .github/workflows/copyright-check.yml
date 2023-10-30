@@ -35,13 +35,13 @@ jobs:
       - name: Copyright Check
         id: check
         continue-on-error: true
-        run: ./maintain/add_license.sh
+        run: .maintain/add_license.sh
 
       # Add license if check fails
       - name: Add copyright notice
         if: steps.check.outcome == 'failure'
         run: |
-          ./maintain/add_license.sh
+          .maintain/add_license.sh
           
           remote_repo="https://${GITHUB_ACTOR}:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git"
           git config http.sslVerify false
