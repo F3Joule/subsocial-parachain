@@ -1,0 +1,1 @@
+find . -type f -name '*.go' -print0 | xargs -0 addlicense -f .maintain/license-header
