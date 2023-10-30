@@ -35,7 +35,7 @@ jobs:
       - name: Copyright Check
         id: check
         continue-on-error: true
-        run: .maintain/add_license.sh
+        run: .maintain/add_license.sh -check
 
       # Add license if check fails
       - name: Add copyright notice
