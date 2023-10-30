@@ -35,14 +35,13 @@ jobs:
       - name: Copyright Check
         id: check
         continue-on-error: true
-        run: |
-          find . -type f -name '*.rs' -exec addlicense -f .maintain/license-header {} +
+        run: .maintain/add_license.sh
 
       # Add license if check fails
       - name: Add copyright notice
         if: steps.check.outcome == 'failure'
         run: |
-          find . -type f -name '*.rs' -exec addlicense -f .maintain/license-header {} +
+          .maintain/add_license.sh
           
           remote_repo="https://${GITHUB_ACTOR}:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git"
           git config http.sslVerify false
